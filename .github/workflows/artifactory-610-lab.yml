@@ -1,0 +1,43 @@
+name: Artifactory 6.1.0 - lab ephemere
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/artifactory-610-lab.yml"
+      - "scripts/ci_lab.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: artifactory-610-lab
+  cancel-in-progress: false
+
+jobs:
+  smoke-test:
+    name: Test Docker Artifactory OSS 6.1.0
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      ARTIFACTORY_IMAGE: releases-docker.jfrog.io/jfrog/artifactory-oss:6.1.0
+      ARTIFACTORY_EXPECTED_VERSION: '6.1.0'
+      ARTIFACTORY_STARTUP_TIMEOUT: '900'
+      LAB_LOG_DIR: ${{ github.workspace }}/lab-logs
+    steps:
+      - name: Recuperer le depot
+        uses: actions/checkout@v4
+      - name: Preparer les logs
+        run: mkdir -p "$LAB_LOG_DIR"
+      - name: Tester Artifactory
+        shell: bash
+        run: bash scripts/ci_lab.sh
+      - name: Publier les resultats
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifactory-610-resultats
+          path: lab-logs/
+          if-no-files-found: warn
+          retention-days: 1
