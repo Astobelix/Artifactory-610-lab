@@ -1,0 +1,55 @@
+name: Podman - installation et test Ubuntu 24.04
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/podman-install.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-podman:
+    name: Installer Podman et tester un conteneur rootless
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Verifier le systeme Linux
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat /etc/os-release
+          uname -r
+      - name: Installer Podman et ses dependances rootless
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v podman >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+              podman uidmap slirp4netns fuse-overlayfs
+          else
+            echo 'Podman est deja disponible sur le runner.'
+          fi
+          podman --version
+      - name: Diagnostiquer le fonctionnement rootless
+        shell: bash
+        run: |
+          set -euo pipefail
+          id
+          podman info
+      - name: Tester un conteneur Alpine avec Podman
+        shell: bash
+        run: |
+          set -euo pipefail
+          podman run --rm --pull=always --network=none docker.io/library/alpine:3.20 \
+            sh -c 'printf "Execution Podman OK, UID interne = %s\n" "$(id -u)"'
+          echo 'SUCCESS: Podman a execute un conteneur sans Docker.'
+      - name: Etat final des conteneurs
+        if: always()
+        shell: bash
+        run: |
+          podman ps -a || true
+          podman images || true
