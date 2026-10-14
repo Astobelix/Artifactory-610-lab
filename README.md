@@ -1,6 +1,6 @@
 # Lab gratuit — Artifactory OSS 6.1.0
 
-Laboratoire **éphémère et public**, exécuté sur le runner standard GitHub Actions `ubuntu-24.04`, avec Docker.
+Laboratoire **éphémère et public**, exécuté sur le runner standard GitHub Actions `ubuntu-24.04`, avec Docker ; un second workflow isole teste l'installation de Podman en mode rootless.
 
 ## Objectif
 
@@ -38,3 +38,13 @@ Consulter l'exécution et son artefact `artifactory-610-resultats` (conservé un
 `version.json` : version renvoyée par l'API si disponible.
 
 Le script est conçu pour échouer sans masquer la cause et pour nettoyer conteneur et volume après exécution.
+
+## Préparation de Podman sur Ubuntu 24.04
+
+Workflow indépendant : **Podman - installation et test Ubuntu 24.04** (`.github/workflows/podman-install.yml`).
+
+Sur le runner standard éphémère, il vérifie la version et l'installation de Podman (paquets Ubuntu si nécessaire), inspecte sa configuration rootless et exécute un petit conteneur Alpine avec réseau désactivé. Il ne déploie pas encore Artifactory et ne modifie pas le workflow Docker existant.
+
+Déclenchement automatique lors de l'ajout du workflow à `main`, ou manuel via **Actions → Podman - installation et test Ubuntu 24.04 → Run workflow**. Les commandes et résultats apparaissent dans les journaux GitHub Actions. Après le job, la VM est supprimée : Podman devra être préparé lors de chaque nouvelle exécution.
+
+Documentation : [installation Podman](https://podman.io/docs/installation), [runners GitHub](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
