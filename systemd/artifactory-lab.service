@@ -9,6 +9,7 @@ Environment=PODMAN_COMPOSE_PROVIDER=/usr/bin/podman-compose
 Environment=HOME=/home/artifact
 Environment=XDG_CONFIG_HOME=/home/artifact/.config
 Environment=XDG_DATA_HOME=/home/artifact/.local/share
+Environment=XDG_RUNTIME_DIR=/run/user/%U
 ExecStart=/usr/bin/podman compose -p artifactory610 -f /home/artifact/artifactory-lab/compose.yaml up -d
 ExecStop=/usr/bin/podman compose -p artifactory610 -f /home/artifact/artifactory-lab/compose.yaml down
 TimeoutStartSec=1200
