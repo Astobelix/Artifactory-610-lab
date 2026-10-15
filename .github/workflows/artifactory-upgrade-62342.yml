@@ -1,0 +1,68 @@
+name: Artifactory 6.1.0 vers 6.23.42 - Derby
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/artifactory-upgrade-62342.yml'
+      - 'scripts/ci_upgrade_62342.sh'
+      - 'scripts/verify_upgrade_62342.sh'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: artifactory-upgrade-62342
+  cancel-in-progress: false
+
+jobs:
+  upgrade-derby:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Installer Artifactory 6.1.0 avec Derby
+        run: sudo bash scripts/install_lab_ubuntu.sh
+
+      - name: Verifier le socle 6.1.0
+        run: bash scripts/test_lab_ubuntu.sh
+
+      - name: Creer un depot temoin et son artefact en 6.1.0
+        run: bash scripts/verify_artifactory_data.sh
+
+      - name: Sauvegarder, cloner Derby et migrer vers 6.23.42
+        run: bash scripts/ci_upgrade_62342.sh
+
+      - name: Verifier version et integrite apres migration
+        run: bash scripts/verify_upgrade_62342.sh
+
+      - name: Collecter les diagnostics
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p compose-lab-logs
+          uid=$(id -u artifact 2>/dev/null || true)
+          if [[ -n "$uid" ]]; then
+            sudo journalctl -u "user@$uid.service" --no-pager -n 200 >compose-lab-logs/systemd-user.log 2>&1 || true
+            (cd /home/artifact && sudo runuser -u artifact -- env -i HOME=/home/artifact USER=artifact LOGNAME=artifact \
+              PATH=/usr/local/bin:/usr/bin:/bin XDG_CONFIG_HOME=/home/artifact/.config \
+              XDG_DATA_HOME=/home/artifact/.local/share XDG_RUNTIME_DIR="/run/user/$uid" \
+              DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+              systemctl --user status artifactory-lab.service --no-pager) >compose-lab-logs/service.log 2>&1 || true
+            (cd /home/artifact && sudo runuser -u artifact -- env -i HOME=/home/artifact USER=artifact LOGNAME=artifact \
+              PATH=/usr/local/bin:/usr/bin:/bin XDG_CONFIG_HOME=/home/artifact/.config \
+              XDG_DATA_HOME=/home/artifact/.local/share XDG_RUNTIME_DIR="/run/user/$uid" \
+              podman ps -a) >compose-lab-logs/podman-ps.log 2>&1 || true
+          fi
+
+      - name: Publier les journaux (sans archive Derby volumineuse)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifactory-upgrade-62342-resultats
+          path: compose-lab-logs/
+          if-no-files-found: warn
+          retention-days: 1
