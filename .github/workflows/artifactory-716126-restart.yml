@@ -1,0 +1,43 @@
+name: Artifactory 7.161.26 - Validation redemarrage Derby
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/artifactory-716126-restart.yml'
+      - 'scripts/verify_716126_restart.sh'
+permissions:
+  contents: read
+jobs:
+  restart-persistence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer source 6.1.0
+        run: sudo bash scripts/install_lab_ubuntu.sh
+      - name: Valider 6.1.0
+        run: bash scripts/test_lab_ubuntu.sh
+      - name: Creer artefact original
+        run: bash scripts/verify_artifactory_data.sh
+      - name: Migrer en 6.23.42 avec sauvegarde
+        run: bash scripts/ci_upgrade_62342.sh
+      - name: Verifier 6.23.42
+        run: bash scripts/verify_upgrade_62342.sh
+      - name: Migrer en 7.161.26 avec sauvegarde
+        run: bash scripts/ci_upgrade_716126.sh
+      - name: Verifier migration 7
+        run: bash scripts/verify_upgrade_716126.sh
+      - name: Ecrire un nouvel artefact et redemarrer Artifactory 7
+        run: bash scripts/verify_716126_restart.sh
+      - name: Collecter les diagnostics
+        if: always()
+        run: bash scripts/collect_upgrade_716126_diagnostics.sh
+      - name: Publier les diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifactory-716126-restart
+          path: compose-lab-logs/
+          if-no-files-found: warn
+          retention-days: 1
