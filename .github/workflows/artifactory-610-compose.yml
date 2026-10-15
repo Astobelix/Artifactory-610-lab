@@ -9,6 +9,7 @@ on:
       - 'systemd/artifactory-lab.service'
       - 'scripts/install_lab_ubuntu.sh'
       - 'scripts/test_lab_ubuntu.sh'
+      - 'scripts/verify_artifactory_data.sh'
   workflow_dispatch:
 
 permissions:
@@ -31,6 +32,9 @@ jobs:
 
       - name: Tester Nginx Artifactory et systemd
         run: bash scripts/test_lab_ubuntu.sh
+
+      - name: Tester la persistance applicative Artifactory
+        run: bash scripts/verify_artifactory_data.sh
 
       - name: Collecter les diagnostics
         if: always()
