@@ -1,0 +1,56 @@
+name: Artifactory 6.1.0 - Podman Compose Nginx
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/artifactory-610-compose.yml'
+      - 'compose/**'
+      - 'systemd/artifactory-lab.service'
+      - 'scripts/install_lab_ubuntu.sh'
+      - 'scripts/test_lab_ubuntu.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: artifactory-610-compose
+  cancel-in-progress: false
+
+jobs:
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Installer sous artifact
+        run: sudo bash scripts/install_lab_ubuntu.sh
+
+      - name: Tester Nginx Artifactory et systemd
+        run: bash scripts/test_lab_ubuntu.sh
+
+      - name: Collecter les diagnostics
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p compose-lab-logs
+          uid=$(id -u artifact 2>/dev/null || true)
+          if [[ -n "$uid" ]]; then
+            sudo journalctl -u "user@$uid.service" --no-pager -n 300 >compose-lab-logs/systemd-user.log 2>&1 || true
+            sudo runuser -u artifact -- env HOME=/home/artifact XDG_RUNTIME_DIR="/run/user/$uid" \
+              DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+              systemctl --user status artifactory-lab.service --no-pager >compose-lab-logs/service.log 2>&1 || true
+            sudo runuser -u artifact -- env HOME=/home/artifact XDG_RUNTIME_DIR="/run/user/$uid" \
+              podman ps -a >compose-lab-logs/podman-ps.log 2>&1 || true
+          fi
+      - name: Publier les journaux
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifactory-610-compose-resultats
+          path: compose-lab-logs/
+          if-no-files-found: warn
+          retention-days: 1
