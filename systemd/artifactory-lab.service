@@ -1,0 +1,15 @@
+[Unit]
+Description=Artifactory OSS 6.1.0 with Nginx (Podman Compose rootless)
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/artifact/artifactory-lab
+Environment=PODMAN_COMPOSE_PROVIDER=/usr/bin/podman-compose
+ExecStart=/usr/bin/podman compose -p artifactory610 -f /home/artifact/artifactory-lab/compose.yaml up -d
+ExecStop=/usr/bin/podman compose -p artifactory610 -f /home/artifact/artifactory-lab/compose.yaml down
+TimeoutStartSec=1200
+TimeoutStopSec=120
+
+[Install]
+WantedBy=default.target
