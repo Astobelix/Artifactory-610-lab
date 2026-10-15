@@ -7,6 +7,7 @@ on:
       - '.github/workflows/artifactory-visual-validation.yml'
       - 'scripts/ci_visual_check.mjs'
       - 'scripts/patch_jfconnect_visual.py'
+      - 'scripts/patch_jfconnect_visual.py'
       - 'scripts/disable_jfconnect_visual.sh'
 permissions:
   contents: read
@@ -40,6 +41,24 @@ jobs:
         run: bash scripts/verify_upgrade_716126.sh
       - name: Corriger JFConnect OSS pour interface graphique
         run: bash scripts/disable_jfconnect_visual.sh
+      - name: Tester correction JFConnect OSS dans le volume clone 7
+        shell: bash
+        run: |
+          uid=$(id -u artifact)
+          as_artifact() {
+            (cd /home/artifact && sudo runuser -u artifact -- env -i HOME=/home/artifact USER=artifact LOGNAME=artifact PATH=/usr/local/bin:/usr/bin:/bin XDG_CONFIG_HOME=/home/artifact/.config XDG_DATA_HOME=/home/artifact/.local/share XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" "$@")
+          }
+          as_artifact systemctl --user stop artifactory-lab.service
+          vol=$(as_artifact podman volume inspect artifactory716126_data --format '{{.Mountpoint}}')
+          config=$(sudo find "$vol" -type f -path '*/etc/system.yaml' -print -quit)
+          test -n "$config"
+          sudo python3 scripts/patch_jfconnect_visual.py "$config"
+          as_artifact systemctl --user start artifactory-lab.service
+          for i in $(seq 1 90); do
+            if curl -fsS --max-time 8 http://127.0.0.1:8080/artifactory/api/system/ping >/dev/null 2>&1; then break; fi
+            sleep 10
+          done
+          curl -fsS -u admin:password http://127.0.0.1:8080/artifactory/api/system/version | tee compose-lab-logs/version-7-jfconnect.json
       - name: Capturer 7.161.26
         run: node scripts/ci_visual_check.mjs 7.161.26
       - name: Tester ecriture et redemarrage 7.161.26
