@@ -12,7 +12,7 @@ Tester l'image officielle **exacte** `releases-docker.jfrog.io/jfrog/artifactory
 4. recréation du conteneur avec le même volume Docker ;
 5. récupération des logs et suppression des ressources.
 
-**La disponibilité du tag 6.1.0 n'a pas encore été vérifiée par exécution réelle.** Si son téléchargement échoue, le workflow doit échouer explicitement. Le registre historique `docker.bintray.io` est fermé.
+Le premier workflow Docker a terminé avec succès d'après GitHub Actions : son script vérifie l'image et la version exacte 6.1.0. Les journaux du job permettent d'en examiner le détail. Le registre historique `docker.bintray.io` est fermé.
 
 ## Lancement
 
@@ -48,3 +48,17 @@ Sur le runner standard éphémère, il vérifie la version et l'installation de 
 Déclenchement automatique lors de l'ajout du workflow à `main`, ou manuel via **Actions → Podman - installation et test Ubuntu 24.04 → Run workflow**. Les commandes et résultats apparaissent dans les journaux GitHub Actions. Après le job, la VM est supprimée : Podman devra être préparé lors de chaque nouvelle exécution.
 
 Documentation : [installation Podman](https://podman.io/docs/installation), [runners GitHub](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
+
+## Artifactory OSS 6.1.0 avec Podman rootless (troisième workflow)
+
+Workflow autonome : `.github/workflows/artifactory-610-podman.yml`, script `scripts/ci_podman_lab.sh`.
+
+- Prépare Podman sur un **nouveau runner standard Ubuntu 24.04**, car les runners sont éphémères.
+- Vérifie explicitement que Podman fonctionne en **rootless**, puis télécharge exactement l'image JFrog OSS `6.1.0`.
+- Démarre Artifactory avec un **volume nommé Podman** et publie l'interface seulement sur `127.0.0.1:8081` du runner.
+- Vérifie la réponse HTTP et la version via l'API au premier démarrage, puis **recrée** le conteneur et revérifie le démarrage, la version et un marqueur de persistance.
+- Conserve pendant 1 jour les journaux d'exécution GitHub dans l'artefact `artifactory-610-podman-resultats` ; supprime conteneur et volume en fin de test.
+
+Le workflow se déclenche sur `main` lors de l'ajout ou de la modification de ces deux fichiers, ou manuellement sous **Actions → Artifactory 6.1.0 - test Podman rootless → Run workflow**.
+
+**Portée :** test temporaire Podman sur Ubuntu 24.04, sans frais de VM persistante pour un dépôt public utilisant un runner standard. Il **ne prouve pas** la compatibilité RHEL 9/SELinux, ni la fiabilité complète d'une migration ou d'une sauvegarde Artifactory. L'ancienne version n'est pas exposée sur Internet. Les deux précédents workflows restent inchangés.
