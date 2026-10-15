@@ -1,0 +1,29 @@
+services:
+  artifactory:
+    image: releases-docker.jfrog.io/jfrog/artifactory-oss:6.1.0
+    restart: unless-stopped
+    environment:
+      EXTRA_JAVA_OPTIONS: "-Xms512m -Xmx2g"
+    volumes:
+      - artifactory_data:/var/opt/jfrog/artifactory
+    networks:
+      - backend
+
+  nginx:
+    image: docker.io/library/nginx:stable-alpine
+    restart: unless-stopped
+    depends_on:
+      - artifactory
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - backend
+
+volumes:
+  artifactory_data:
+    name: artifactory610_data
+
+networks:
+  backend:
