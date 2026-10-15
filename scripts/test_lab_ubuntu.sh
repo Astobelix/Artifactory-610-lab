@@ -3,7 +3,7 @@ set -Eeuo pipefail
 uid="$(id -u artifact)"
 mkdir -p compose-lab-logs
 as_artifact() {
-  sudo runuser -u artifact -- env HOME=/home/artifact XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" "$@"
+  sudo runuser -u artifact -- env -i HOME=/home/artifact USER=artifact LOGNAME=artifact PATH=/usr/local/bin:/usr/bin:/bin XDG_CONFIG_HOME=/home/artifact/.config XDG_DATA_HOME=/home/artifact/.local/share XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" "$@"
 }
 check_api() {
   label="$1"
