@@ -13,15 +13,14 @@ from pathlib import Path
 repos = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 if not isinstance(repos, list):
     raise SystemExit("Reponse de liste des depots inattendue")
-local = [r for r in repos if str(r.get("type", r.get("rclass", ""))).lower() == "local"
-         and str(r.get("packageType", "")).lower() in ("generic", "maven")]
+local = [r for r in repos if str(r.get("type", r.get("rclass", ""))).lower() == "local"]
 local.sort(key=lambda r: (str(r.get("packageType", "")).lower() != "generic", r.get("key", "")))
 print("Depots locaux utilisables :", [(r.get("key"), r.get("packageType")) for r in local])
 if not local:
-    raise SystemExit("Aucun depot local generic/maven existant : creation REST non disponible en OSS ; initialisation requise")
+    raise SystemExit("Aucun depot local existant dans la reponse de l API")
 chosen = local[0]
 key = chosen["key"]
-kind = str(chosen.get("packageType", "")).lower()
+kind = str(chosen.get("packageType") or "generic").lower()
 if not key or not all(c.isalnum() or c in "-_" for c in key):
     raise SystemExit("Cle de depot non conforme")
 Path(sys.argv[2]).write_text(key + "\n" + kind + "\n", encoding="utf-8")
