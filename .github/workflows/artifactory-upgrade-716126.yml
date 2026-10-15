@@ -1,0 +1,39 @@
+name: Artifactory 6.23.42 vers 7.161.26 - Derby
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/artifactory-upgrade-716126.yml'
+      - 'scripts/ci_upgrade_716126.sh'
+      - 'scripts/verify_upgrade_716126.sh'
+permissions:
+  contents: read
+jobs:
+  migration-majeure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer source Derby 6.1.0
+        run: sudo bash scripts/install_lab_ubuntu.sh
+      - name: Verifier source
+        run: bash scripts/test_lab_ubuntu.sh
+      - name: Publier donnees temoins
+        run: bash scripts/verify_artifactory_data.sh
+      - name: Migrer vers 6.23.42
+        run: bash scripts/ci_upgrade_62342.sh
+      - name: Verifier 6.23.42
+        run: bash scripts/verify_upgrade_62342.sh
+      - name: Cloner Derby puis migrer vers 7.161.26
+        run: bash scripts/ci_upgrade_716126.sh
+      - name: Verifier version et artefact 7.161.26
+        run: bash scripts/verify_upgrade_716126.sh
+      - name: Publier diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifactory-upgrade-716126-resultats
+          path: compose-lab-logs/
+          if-no-files-found: warn
+          retention-days: 1
