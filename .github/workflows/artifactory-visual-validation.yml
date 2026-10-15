@@ -6,6 +6,8 @@ on:
     paths:
       - '.github/workflows/artifactory-visual-validation.yml'
       - 'scripts/ci_visual_check.mjs'
+      - 'scripts/patch_jfconnect_visual.py'
+      - 'scripts/disable_jfconnect_visual.sh'
 permissions:
   contents: read
 jobs:
@@ -36,6 +38,8 @@ jobs:
         run: bash scripts/ci_upgrade_716126.sh
       - name: Valider 7.161.26
         run: bash scripts/verify_upgrade_716126.sh
+      - name: Corriger JFConnect OSS pour interface graphique
+        run: bash scripts/disable_jfconnect_visual.sh
       - name: Capturer 7.161.26
         run: node scripts/ci_visual_check.mjs 7.161.26
       - name: Tester ecriture et redemarrage 7.161.26
