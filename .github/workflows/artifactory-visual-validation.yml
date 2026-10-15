@@ -1,0 +1,57 @@
+name: Artifactory 6 et 7 - Captures graphiques Chromium
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/artifactory-visual-validation.yml'
+      - 'scripts/ci_visual_check.mjs'
+permissions:
+  contents: read
+jobs:
+  visuel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparer Playwright Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Installer Artifactory 6.1.0
+        run: sudo bash scripts/install_lab_ubuntu.sh
+      - name: Verifier la version initiale
+        run: bash scripts/test_lab_ubuntu.sh
+      - name: Capturer 6.1.0
+        run: node scripts/ci_visual_check.mjs 6.1.0
+      - name: Creer des donnees temoins
+        run: bash scripts/verify_artifactory_data.sh
+      - name: Migrer 6.1.0 vers 6.23.42
+        run: bash scripts/ci_upgrade_62342.sh
+      - name: Valider la version 6.23.42
+        run: bash scripts/verify_upgrade_62342.sh
+      - name: Capturer 6.23.42
+        run: node scripts/ci_visual_check.mjs 6.23.42
+      - name: Migrer vers 7.161.26
+        run: bash scripts/ci_upgrade_716126.sh
+      - name: Valider 7.161.26
+        run: bash scripts/verify_upgrade_716126.sh
+      - name: Capturer 7.161.26
+        run: node scripts/ci_visual_check.mjs 7.161.26
+      - name: Tester ecriture et redemarrage 7.161.26
+        run: bash scripts/verify_716126_restart.sh
+      - name: Capturer apres redemarrage
+        run: node scripts/ci_visual_check.mjs 7.161.26-restart
+      - name: Collecter diagnostics
+        if: always()
+        run: bash scripts/collect_upgrade_716126_diagnostics.sh
+      - name: Publier les captures PNG et les rapports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifactory-captures-android-edge
+          path: |
+            captures-artifactory/
+            compose-lab-logs/
+          if-no-files-found: warn
+          retention-days: 3
