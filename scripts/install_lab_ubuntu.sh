@@ -20,7 +20,7 @@ systemctl start "user@$uid.service"
 for i in $(seq 1 30); do [[ -S "/run/user/$uid/bus" ]] && break; sleep 1; done
 [[ -S "/run/user/$uid/bus" ]] || { echo 'Bus systemd utilisateur indisponible' >&2; exit 3; }
 as_artifact() {
-  runuser -u artifact -- env -i HOME=/home/artifact USER=artifact LOGNAME=artifact PATH=/usr/local/bin:/usr/bin:/bin XDG_CONFIG_HOME=/home/artifact/.config XDG_DATA_HOME=/home/artifact/.local/share XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" "$@"
+  (cd /home/artifact && runuser -u artifact -- env -i HOME=/home/artifact USER=artifact LOGNAME=artifact PATH=/usr/local/bin:/usr/bin:/bin XDG_CONFIG_HOME=/home/artifact/.config XDG_DATA_HOME=/home/artifact/.local/share XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" "$@")
 }
 [[ "$(as_artifact podman info --format '{{.Host.Security.Rootless}}')" == true ]] || exit 4
 as_artifact systemctl --user daemon-reload
