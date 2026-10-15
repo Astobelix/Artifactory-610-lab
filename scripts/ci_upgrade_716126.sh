@@ -82,6 +82,19 @@ compose.write_text(c, encoding='utf-8')
 nginx.write_text(n, encoding='utf-8')
 PY
 
+echo 'Premier demarrage court pour generer system.yaml, avant correction Derby'
+as_artifact systemctl --user start artifactory-lab.service
+sleep 15
+as_artifact systemctl --user stop artifactory-lab.service
+VOL="$(as_artifact podman volume inspect artifactory716126_data --format '{{.Mountpoint}}')"
+CONFIG="$(sudo find "$VOL" -type f -path '*/etc/system.yaml' -print -quit)"
+if [[ -z "$CONFIG" ]]; then
+  echo 'system.yaml introuvable dans volume clone : diagnostic requis' >&2
+  exit 52
+fi
+echo 'Configuration Derby historique: correction dans le volume clone'
+sudo apt-get install -y -qq python3-yaml
+sudo python3 scripts/patch_derby_716126.py "$CONFIG"
 echo 'Demarrage avec migration explicite ENABLE_MIGRATION=y'
 as_artifact systemctl --user start artifactory-lab.service
 as_artifact systemctl --user is-active --quiet artifactory-lab.service
