@@ -62,3 +62,16 @@ Workflow autonome : `.github/workflows/artifactory-610-podman.yml`, script `scri
 Le workflow se déclenche sur `main` lors de l'ajout ou de la modification de ces deux fichiers, ou manuellement sous **Actions → Artifactory 6.1.0 - test Podman rootless → Run workflow**.
 
 **Portée :** test temporaire Podman sur Ubuntu 24.04, sans frais de VM persistante pour un dépôt public utilisant un runner standard. Il **ne prouve pas** la compatibilité RHEL 9/SELinux, ni la fiabilité complète d'une migration ou d'une sauvegarde Artifactory. L'ancienne version n'est pas exposée sur Internet. Les deux précédents workflows restent inchangés.
+
+
+## Podman Compose avec Nginx et compte artifact
+
+Quatrième workflow : `.github/workflows/artifactory-610-compose.yml`.
+
+Le script `scripts/install_lab_ubuntu.sh` installe Podman et podman-compose sur Ubuntu 24.04, crée le compte `artifact`, copie `compose/compose.yaml` et `compose/nginx/default.conf`, active `loginctl enable-linger artifact` puis démarre un service `systemd --user` décrit dans `systemd/artifactory-lab.service`.
+
+La composition comporte deux conteneurs : Artifactory OSS 6.1.0 et Nginx sur un réseau Podman privé. Seul Nginx publie le port `127.0.0.1:8080`, sans TLS (lab isolé). Les données Artifactory sont dans le volume nommé `artifactory610_data`.
+
+Le script `scripts/test_lab_ubuntu.sh` teste l'accès via Nginx, la version Artifactory 6.1.0, le redémarrage du service utilisateur systemd et la persistance d'un marqueur. **Ce test ne réalise pas un véritable reboot de VM** : les runners GitHub Actions sont éphémères. Sur une VM persistante, il faudra tester `sudo reboot` et le retour automatique de la plateforme, ainsi que les permissions sur les volumes et la configuration TLS.
+
+Voir [GitHub Actions](https://github.com/Astobelix/Artifactory-610-lab/actions) pour les résultats réels. Un workflow déclaré ne constitue pas une preuve de réussite de l'intégration.
