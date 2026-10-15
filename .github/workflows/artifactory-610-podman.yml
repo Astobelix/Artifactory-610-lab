@@ -1,0 +1,47 @@
+name: Artifactory 6.1.0 - Podman rootless
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/artifactory-610-podman.yml'
+      - 'scripts/ci_podman_lab.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: artifactory-610-podman
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Installer Podman
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v podman >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends podman uidmap slirp4netns fuse-overlayfs
+          fi
+          podman info
+
+      - name: Tester Artifactory 6.1.0
+        shell: bash
+        run: bash scripts/ci_podman_lab.sh
+
+      - name: Publier les journaux
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifactory-610-podman-resultats
+          path: podman-lab-logs/
+          if-no-files-found: warn
+          retention-days: 1
