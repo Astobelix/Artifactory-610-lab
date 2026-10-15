@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/artifactory-upgrade-716126.yml'
       - 'scripts/ci_upgrade_716126.sh'
+      - 'scripts/patch_derby_716126.py'
       - 'scripts/verify_upgrade_716126.sh'
       - 'scripts/collect_upgrade_716126_diagnostics.sh'
 permissions:
